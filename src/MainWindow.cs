@@ -33,7 +33,30 @@ public static class Chrome
             DwmSetWindowAttribute(h, 33, ref round, 4);    // DWMWA_WINDOW_CORNER_PREFERENCE
             DwmSetWindowAttribute(h, 34, ref border, 4);   // DWMWA_BORDER_COLOR
             DwmSetWindowAttribute(h, 35, ref caption2, 4); // DWMWA_CAPTION_COLOR
+            HwndSource.FromHwnd(h)?.AddHook(MaxToWorkArea);
         };
+    }
+
+    // A borderless window maximizes over the whole monitor, taskbar included.
+    // WM_GETMINMAXINFO: limit the maximized size to the work area of the monitor the window is on.
+    [StructLayout(LayoutKind.Sequential)] struct POINT { public int X, Y; }
+    [StructLayout(LayoutKind.Sequential)] struct RECT { public int Left, Top, Right, Bottom; }
+    [StructLayout(LayoutKind.Sequential)] struct MINMAXINFO { public POINT Reserved, MaxSize, MaxPosition, MinTrackSize, MaxTrackSize; }
+    [StructLayout(LayoutKind.Sequential)] struct MONITORINFO { public int Size; public RECT Monitor, Work; public uint Flags; }
+    [DllImport("user32.dll")] static extern IntPtr MonitorFromWindow(IntPtr hwnd, uint flags);
+    [DllImport("user32.dll")] static extern bool GetMonitorInfo(IntPtr monitor, ref MONITORINFO info);
+
+    static IntPtr MaxToWorkArea(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
+    {
+        if (msg != 0x0024) return IntPtr.Zero; // WM_GETMINMAXINFO
+        IntPtr mon = MonitorFromWindow(hwnd, 2); // MONITOR_DEFAULTTONEAREST
+        var mi = new MONITORINFO { Size = Marshal.SizeOf<MONITORINFO>() };
+        if (mon == IntPtr.Zero || !GetMonitorInfo(mon, ref mi)) return IntPtr.Zero;
+        var mmi = Marshal.PtrToStructure<MINMAXINFO>(lParam);
+        mmi.MaxPosition = new POINT { X = mi.Work.Left - mi.Monitor.Left, Y = mi.Work.Top - mi.Monitor.Top };
+        mmi.MaxSize = new POINT { X = mi.Work.Right - mi.Work.Left, Y = mi.Work.Bottom - mi.Work.Top };
+        Marshal.StructureToPtr(mmi, lParam, true);
+        return IntPtr.Zero; // let WPF/Windows go on with the adjusted values
     }
 }
 
@@ -126,7 +149,7 @@ public sealed class MainWindow : Window
         WindowChrome.SetIsHitTestVisibleInChrome(lang, true);
         var titleBar = new Grid { Height = 42, Background = Bg0 };
         titleBar.Children.Add(title); titleBar.Children.Add(H(lang.M(0, 0, 14, 0), caps).Right());
-        StateChanged += (_, _) => { root.Margin = new Thickness(WindowState == WindowState.Maximized ? 7 : 0); maxBtn.Content = WindowState == WindowState.Maximized ? "" : ""; };
+        StateChanged += (_, _) => { maxBtn.Content = WindowState == WindowState.Maximized ? "" : ""; };
 
         App.Trace("ctor d");
         // ----- sidebar -----
