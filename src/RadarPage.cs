@@ -67,7 +67,7 @@ public sealed class RadarPage : Grid, IDisposable
         view3d.Visibility = is3d ? Visibility.Visible : Visibility.Collapsed;
         top.Radar = false;
         hover.Visibility = is3d ? Visibility.Collapsed : Visibility.Visible;
-        hint.Text = is3d ? "Ziehen: drehen · Rechts ziehen: verschieben · Rad: Zoom · Klick: Nadel wählen" : "   Ziehen: verschieben · Rad: Zoom";
+        hint.Text = is3d ? Loc.L("Ziehen: drehen · Rechts ziehen: verschieben · Rad: Zoom · Klick: Nadel wählen") : "   " + Loc.L("Ziehen: verschieben · Rad: Zoom");
         Redraw();
     }
 
@@ -97,7 +97,7 @@ public sealed class RadarPage : Grid, IDisposable
                 Padding = new Thickness(8, 7, 10, 7), CornerRadius = new CornerRadius(8), Margin = new Thickness(0, 0, 0, 4), Cursor = Cursors.Hand,
                 Background = i == selected ? Ui.Bg3 : Brushes.Transparent, BorderThickness = new Thickness(1), BorderBrush = i == selected ? Ui.Alpha(col, 0.6) : Brushes.Transparent,
                 Child = Ui.Cols("a,*,a", icon.M(0, 0, 10, 0),
-                    Ui.V(Ui.T($"Nadel {i + 1}", 12.5, found ? Ui.Dim : Ui.Text, true), Ui.T(found ? "gefunden" : depth <= 0.02 ? "liegt frei" : $"{depth:0.00} m tief · Höhe {y:0.0} m", 11, found ? Ui.Faint : Ui.Dim)),
+                    Ui.V(Ui.T(Loc.L("Nadel {0}", i + 1), 12.5, found ? Ui.Dim : Ui.Text, true), Ui.T(found ? "gefunden" : depth <= 0.02 ? "liegt frei" : Loc.L("{0} m tief · Höhe {1} m", depth.ToString("0.00"), y.ToString("0.0")), 11, found ? Ui.Faint : Ui.Dim)),
                     Ui.Mono($"{distP:0.0} m", 11.5, Ui.Dim).Tip("Entfernung zum Spieler"))
             };
             row.MouseLeftButtonUp += (_, _) => Select(idx == selected ? -1 : idx);
@@ -111,7 +111,7 @@ public sealed class RadarPage : Grid, IDisposable
         {
             int i = selected; bool found = NeedleOps.IsFound(s, i);
             Button Wide(string text, string glyph, Action a, string style = "Btn") { var b = Ui.Btn(text, a, style, glyph); b.HorizontalContentAlignment = HorizontalAlignment.Left; b.Margin = new Thickness(0, 0, 0, 6); b.Padding = new Thickness(12, 8, 12, 8); return b; }
-            sel = Ui.Card($"Nadel {i + 1} · {GameData.NeedleName(NeedleOps.TypeOf(s, i))}", Ui.V(
+            sel = Ui.Card(Loc.L("Nadel {0}", i + 1) + " · " + GameData.NeedleName(NeedleOps.TypeOf(s, i)), Ui.V(
                 Wide("Freilegen", "", () => { NeedleOps.Excavate(s, i); Changed("Trichter bis zur Nadel gegraben"); }, "BtnAccent").Tip("Gräbt einen Trichter ins Heu, bis die Nadel offen liegt"),
                 Wide("Spieler hierher stellen", "", () => { var p = NeedleOps.Pos(s, i); NeedleOps.TeleportPlayer(s, p.x, p.z); Changed("Spieler steht jetzt über der Nadel"); }),
                 Wide(found ? "Zurück ins Heu legen" : "Als gefunden markieren", found ? "" : "", () => { NeedleOps.SetFound(s, i, !found); Changed(null); })), icon: "");
@@ -129,7 +129,7 @@ public sealed class RadarPage : Grid, IDisposable
             Ui.Cols("*,a", Ui.T("Volumen", 12, Ui.Dim), Ui.Mono($"{Ui.Num(vol)} m³", 12)).M(0, 0, 0, 5),
             Ui.Cols("*,a", Ui.T("Halme", 12, Ui.Dim), Ui.Mono(Ui.Short(s.State.Num("hay_total")), 12)).M(0, 0, 0, 12),
             Ui.Cols("*,a", Ui.T("Haufenhöhe setzen auf", 12, Ui.Dim), pctText).M(0, 0, 0, 4), slider,
-            Ui.Btn("Höhe anwenden", () => { double before = s.HeightSum(); float f = (float)(pct / 100); for (int i = 0; i < h.Length; i++) h[i] *= f; s.ApplyVolumeChange(before); Changed($"Haufen auf {pct:0} % skaliert"); }, "Btn", "").M(0, 8, 0, 6),
+            Ui.Btn("Höhe anwenden", () => { double before = s.HeightSum(); float f = (float)(pct / 100); for (int i = 0; i < h.Length; i++) h[i] *= f; s.ApplyVolumeChange(before); Changed(Loc.L("Haufen auf {0} % skaliert", pct.ToString("0"))); }, "Btn", "").M(0, 8, 0, 6),
             s.Dome != null && s.Dome.Length == h.Length ? Ui.Btn("Ursprungsform wiederherstellen", () =>
             {
                 Array.Copy(s.Dome, h, h.Length); s.State.SetNum("hay_total", s.State.Num("hay_initial")); Changed("Haufen ist wieder voll");
@@ -145,6 +145,6 @@ public sealed class RadarPage : Grid, IDisposable
             Ui.Switch("Gebäude", showBuildings, v => { showBuildings = v; Redraw(); }), null,
             Ui.Switch("Bänder", showBelts, v => { showBelts = v; Redraw(); }), null,
             Ui.Switch("Objekte", showProps, v => { showProps = v; Redraw(); })), pad: 10);
-        side.Content = Ui.V(layerBox.M(0, 0, 0, 12), Ui.Card($"Nadeln · {Enumerable.Range(0, n).Count(i => !NeedleOps.IsFound(s, i))} noch im Heu", list, icon: ""), ((FrameworkElement)sel).M(0, 12, 0, 12), Ui.Card("Haufen-Werkzeuge", stats, icon: ""));
+        side.Content = Ui.V(layerBox.M(0, 0, 0, 12), Ui.Card(Loc.L("Nadeln · {0} noch im Heu", Enumerable.Range(0, n).Count(i => !NeedleOps.IsFound(s, i))), list, icon: ""), ((FrameworkElement)sel).M(0, 12, 0, 12), Ui.Card("Haufen-Werkzeuge", stats, icon: ""));
     }
 }

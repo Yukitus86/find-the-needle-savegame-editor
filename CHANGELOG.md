@@ -1,5 +1,19 @@
 # Changelog
 
+## 2.1.0
+
+### New
+
+- **Depot** tab: the shared depot stock with every good, −10 / +10 / +100, fill all up to any amount, empty the depot, depots on the yard and their acceptance rules (limits, refused goods)
+- **English and German** interface, English by default; switch with EN / DE in the title bar (the loaded save and unsaved edits stay)
+- Tech catalog grown from about 100 to 160+ cards (smelter, fabricator, assembler, depot, gas plant, blueprint designer, jetpack, …) in 10 branches
+- New building names (depot, smelter, digester, pulper, needle radar, water main, …) and the "Mountain" pile size
+
+### Changed
+
+- **Tech** tab redesigned: branch list with progress on the left, compact two-column rows, unlock switches for one-step cards, filter all / open / done
+- `--dump <save> <out.txt>` developer aid
+
 ## 2.0.0
 
 Rewritten from scratch for Early Access.

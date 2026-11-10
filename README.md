@@ -24,7 +24,7 @@
   <img src="docs/radar-xray.png" width="760" alt="3D haystack radar in x-ray mode">
 </p>
 
-Unofficial fan tool, not affiliated with the developers of Find The Needle. The interface is in German.
+Unofficial fan tool, not affiliated with the developers of Find The Needle. The interface is in **English and German** – switch with **EN / DE** in the title bar.
 
 ## 🏁 Fair play: edited saves stay off the leaderboards
 
@@ -57,9 +57,10 @@ The pile hides 24 needles under metres of hay. The save stores the full height m
 | **Run & money** | Balance with quick buttons (+1,000 … +1 M, ×2, ×10), debt, all run records as tiles (click to edit), times, jetpack fuel, radar cooldown, lot tier, haystack counters, slot name |
 | **Needles** | Every needle in the pile: type, position, hay above it, found or not (counted like in the game: collection, stock and counters follow). Find all / put all back |
 | **Haystack radar** | See above |
-| **Tech** | All cards with their ranks, grouped by branch: +1 / −1 / MAX per card or per branch, everything to MAX, reset, search |
+| **Tech** | All 160+ cards in 10 branches. Branch list with progress on the left, compact rows on the right: unlock switches for one-step cards, rank bar with −/+/MAX for the others. Filter all / open / done, search, +1 / −1 / MAX per branch, everything to MAX, reset |
 | **Gear** | Shop tools (give / take), the build hotbar (keys 1–9), gifts waiting to be claimed, "new" badges |
 | **Buildings** | Overview (count, switched on, invested, fuel), one card per building type with on/off switches, fuel and storage; switch all on/off, clear jammed belts |
+| **Depot** | The shared depot stock: every good with amount, −10 / +10 / +100, fill all up to any amount, +100 for everything in stock, empty the depot. Grouped into hay goods, metal, parts, carbon & composite, bio. Depots on the yard (on/off) and the acceptance rules (limits and refused goods) with one click to lift them |
 | **Missions** | Current mission (id, position, progress), orders, rewards already received, spending analysis from the purchase log |
 | **Career** | Records across all runs from `profile.cfg`, records per pile size, play diary (read-only) |
 | **Backups** | Automatic backup before every save, manual backup, restore any backup |
@@ -69,15 +70,20 @@ The pile hides 24 needles under metres of hay. The save stores the full height m
 |-------------|---------|------|
 | ![Run and money tab](docs/run.png) | ![Needles tab](docs/needles.png) | ![Tech tab](docs/tech.png) |
 
-| Gear | Buildings | Missions |
-|------|-----------|----------|
-| ![Gear tab](docs/gear.png) | ![Buildings tab](docs/buildings.png) | ![Missions tab](docs/missions.png) |
+| Gear | Buildings | Depot |
+|------|-----------|-------|
+| ![Gear tab](docs/gear.png) | ![Buildings tab](docs/buildings.png) | ![Depot tab](docs/depot.png) |
+
+| Missions |
+|----------|
+| ![Missions tab](docs/missions.png) |
 
 Also:
 
 - 🏁 Saving marks the run as not ranked (see [Fair play](#-fair-play-edited-saves-stay-off-the-leaderboards))
 - Reads and writes Godot's binary Variant format itself; values the editor does not know are kept as they are
-- Finds the save folder on its own; any other save file can be opened with **Datei öffnen …**
+- English and German interface, switch with **EN / DE** in the title bar; the choice is kept in `%APPDATA%\FindTheNeedleEditor\settings.ini`
+- Finds the save folder on its own; any other save file can be opened with **Open file …**
 - Single self-contained exe, no installation, no .NET runtime needed
 
 Known limits: the game's data tables are inside its encrypted package, so needle types and missions are shown by number or id instead of by name.
@@ -86,7 +92,7 @@ Known limits: the game's data tables are inside its encrypted package, so needle
 
 1. Download `FindTheNeedleEditor.exe` from the [latest release](../../releases/latest) (Windows 10/11 x64).
 2. Close the game (its autosave would overwrite your changes).
-3. Start the editor, pick a slot, change what you want, click **Speichern**.
+3. Start the editor, pick a slot, change what you want, click **Save** (Ctrl+S).
 
 The editor looks for saves here, in this order:
 
@@ -115,7 +121,10 @@ Needs the .NET 10 SDK.
 build.cmd
 ```
 
-It builds and publishes the single-file exe next to the script. `FindTheNeedleEditor.exe --shots <folder>` renders every tab plus the radar views to PNG and exits.
+It builds and publishes the single-file exe next to the script. Developer aids:
+
+- `FindTheNeedleEditor.exe --shots <folder> [--lang en|de]` renders every tab plus the radar views to PNG and exits
+- `FindTheNeedleEditor.exe --dump <save> <out.txt>` writes the decrypted save as a text tree
 
 ## Layout
 
@@ -124,7 +133,9 @@ It builds and publishes the single-file exe next to the script. `FindTheNeedleEd
 | `src/GdVariant.cs` | Godot 4 Variant binary format (decode/encode) |
 | `src/SaveFile.cs` | GDEC encryption, save folder detection, typed access to the save, backups, needle and pile operations |
 | `src/PileViews.cs`, `src/RadarPage.cs` | Radar top view, 3D view and tools |
-| `src/Pages.cs`, `src/Pages2.cs` | The other tabs |
+| `src/Pages.cs`, `src/Pages2.cs`, `src/Pages3.cs` | The other tabs (`Pages3.cs`: Tech and Depot) |
+| `src/GameData.cs` | Tech branches, depot goods, building names – collected from real saves |
+| `src/Loc.cs`, `src/LocEn.cs` | Language switch; German texts are the keys, English comes from the table |
 | `src/Ui.cs`, `src/App.xaml` | Controls, theme, styles |
 | `src/MainWindow.cs` | Window, sidebar, saving |
 

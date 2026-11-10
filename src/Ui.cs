@@ -39,8 +39,8 @@ public static class Ui
     public static string Short(double v)
     {
         double a = Math.Abs(v);
-        if (a >= 1e9) return (v / 1e9).ToString("0.##", Inv) + " Mrd";
-        if (a >= 1e6) return (v / 1e6).ToString("0.##", Inv) + " Mio";
+        if (a >= 1e9) return (v / 1e9).ToString("0.##", Inv) + (Loc.De ? " Mrd" : " B");
+        if (a >= 1e6) return (v / 1e6).ToString("0.##", Inv) + (Loc.De ? " Mio" : " M");
         if (a >= 1e4) return (v / 1e3).ToString("0.#", Inv) + " k";
         return Num(v, a < 100 && v != Math.Floor(v) ? 2 : 0);
     }
@@ -68,12 +68,12 @@ public static class Ui
 
     // ---------- text ----------
     public static TextBlock T(string text, double size = 12.5, Brush fg = null, bool bold = false, string font = "UiFont")
-        => new() { Text = text, FontSize = size, Foreground = fg ?? Text, FontWeight = bold ? FontWeights.SemiBold : FontWeights.Normal, FontFamily = Font(font), TextTrimming = TextTrimming.CharacterEllipsis, VerticalAlignment = VerticalAlignment.Center };
+        => new() { Text = Loc.L(text), FontSize = size, Foreground = fg ?? Text, FontWeight = bold ? FontWeights.SemiBold : FontWeights.Normal, FontFamily = Font(font), TextTrimming = TextTrimming.CharacterEllipsis, VerticalAlignment = VerticalAlignment.Center };
     public static TextBlock Head(string text, double size = 20, Brush fg = null) => T(text, size, fg, true, "HeadFont");
     public static TextBlock Mono(string text, double size = 12.5, Brush fg = null) => T(text, size, fg, false, "MonoFont");
     public static TextBlock Caps(string text, Brush fg = null)
     {
-        var t = T(text.ToUpperInvariant(), 10.5, fg ?? Dim, true); TextOptions.SetTextFormattingMode(t, TextFormattingMode.Ideal);
+        var t = T(Loc.L(text).ToUpperInvariant(), 10.5, fg ?? Dim, true); TextOptions.SetTextFormattingMode(t, TextFormattingMode.Ideal);
         t.Typography.Capitals = FontCapitals.Normal; return t;
     }
     public static TextBlock Icon(string glyph, double size = 15, Brush fg = null)
@@ -83,7 +83,7 @@ public static class Ui
     // ---------- layout ----------
     public static T M<T>(this T e, double l, double t = 0, double r = 0, double b = 0) where T : FrameworkElement { e.Margin = new Thickness(l, t, r, b); return e; }
     public static T W<T>(this T e, double w) where T : FrameworkElement { e.Width = w; return e; }
-    public static T Tip<T>(this T e, string tip) where T : FrameworkElement { e.ToolTip = tip; ToolTipService.SetInitialShowDelay(e, 350); return e; }
+    public static T Tip<T>(this T e, string tip) where T : FrameworkElement { e.ToolTip = Loc.L(tip); ToolTipService.SetInitialShowDelay(e, 350); return e; }
     public static T Col<T>(this T e, int c, int span = 1) where T : UIElement { Grid.SetColumn(e, c); if (span > 1) Grid.SetColumnSpan(e, span); return e; }
     public static T Row<T>(this T e, int r, int span = 1) where T : UIElement { Grid.SetRow(e, r); if (span > 1) Grid.SetRowSpan(e, span); return e; }
     public static T DockTo<T>(this T e, System.Windows.Controls.Dock d) where T : UIElement { DockPanel.SetDock(e, d); return e; }
@@ -134,22 +134,22 @@ public static class Ui
         if (icon != null)
         {
             var ic = Icon(icon, 12); ic.SetBinding(TextBlock.ForegroundProperty, new System.Windows.Data.Binding("Foreground") { Source = b });
-            var tx = new TextBlock { Text = text, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(text == "" ? 0 : 7, 0, 0, 0) };
+            var tx = new TextBlock { Text = Loc.L(text), VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(text == "" ? 0 : 7, 0, 0, 0) };
             b.Content = H(ic, tx);
         }
-        else b.Content = text;
+        else b.Content = Loc.L(text);
         if (click != null) b.Click += (_, _) => click();
         return b;
     }
     public static CheckBox Switch(string label, bool value, Action<bool> changed)
     {
-        var c = new CheckBox { Style = (Style)Application.Current.Resources["Switch"], Content = label, IsChecked = value };
+        var c = new CheckBox { Style = (Style)Application.Current.Resources["Switch"], Content = Loc.L(label), IsChecked = value };
         c.Click += (_, _) => changed(c.IsChecked == true);
         return c;
     }
     public static RadioButton Seg(string text, string group, bool on, Action click, string style = "Seg")
     {
-        var r = new RadioButton { Style = (Style)Application.Current.Resources[style], Content = text, GroupName = group, IsChecked = on };
+        var r = new RadioButton { Style = (Style)Application.Current.Resources[style], Content = Loc.L(text), GroupName = group, IsChecked = on };
         r.Checked += (_, _) => click();
         return r;
     }
@@ -243,7 +243,7 @@ public static class Ui
     public static ComboBox Combo(IEnumerable<string> items, string selected, Action<string> changed, Func<string, string> label = null, double width = 160)
     {
         var cb = new ComboBox { Width = width };
-        foreach (var it in items) cb.Items.Add(new ComboBoxItem { Content = label?.Invoke(it) ?? it, Tag = it, IsSelected = it == selected });
+        foreach (var it in items) cb.Items.Add(new ComboBoxItem { Content = Loc.L(label?.Invoke(it) ?? it), Tag = it, IsSelected = it == selected });
         cb.SelectionChanged += (_, _) => { if (cb.SelectedItem is ComboBoxItem i) changed((string)i.Tag); };
         return cb;
     }

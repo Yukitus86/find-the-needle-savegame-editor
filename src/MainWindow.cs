@@ -42,7 +42,7 @@ public static class Dlg
     static bool Show(string title, string text, string ok, string cancel, bool danger = false)
     {
         var owner = Application.Current.Windows.OfType<Window>().FirstOrDefault(x => x.IsActive) ?? Application.Current.MainWindow;
-        var w = new Window { Width = 440, SizeToContent = SizeToContent.Height, ResizeMode = ResizeMode.NoResize, ShowInTaskbar = false, Title = title };
+        var w = new Window { Width = 440, SizeToContent = SizeToContent.Height, ResizeMode = ResizeMode.NoResize, ShowInTaskbar = false, Title = Loc.L(title) };
         if (owner != null && owner.IsVisible) { w.Owner = owner; w.WindowStartupLocation = WindowStartupLocation.CenterOwner; } else w.WindowStartupLocation = WindowStartupLocation.CenterScreen;
         Chrome.Apply(w, 36);
         bool result = false;
@@ -79,9 +79,11 @@ public sealed class MainWindow : Window
     Button saveBtn;
     readonly DispatcherTimer watch = new() { Interval = TimeSpan.FromSeconds(3) };
 
-    public MainWindow()
+    readonly SaveGame carry; readonly string carryPage; bool switching;
+
+    public MainWindow(SaveGame carrySave = null, string page = null)
     {
-        I = this;
+        I = this; carry = carrySave; carryPage = page;
         Title = "Find The Needle – Save Editor";
         Width = 1320; Height = 840; MinWidth = 1060; MinHeight = 640;
         WindowStartupLocation = WindowStartupLocation.CenterScreen;
@@ -99,6 +101,7 @@ public sealed class MainWindow : Window
             new("tech", "Technik", "Alle Karten mit Rängen – einzeln oder alles auf MAX", "", s => Pages.Tech(s)),
             new("gear", "Ausrüstung", "Werkzeuge, Bau-Leiste, Geschenke", "", s => Pages.Gear(s)),
             new("buildings", "Gebäude", "Maschinen ein/aus, Treibstoff, Lager", "", s => Pages.Buildings(s)),
+            new("depot", "Depot", "Lagerbestand einsehen, auffüllen und leeren", "", s => Pages.Depot(s)),
             new("missions", "Missionen", "Aktuelle Mission, Aufträge und Ausgaben-Analyse", "", s => Pages.Missions(s)),
             new("career", "Karriere", "Rekorde über alle Läufe aus profile.cfg", "", s => Pages.Career(s)),
             new("backups", "Backups", "Automatische Sicherung vor jedem Speichern", "", s => Pages.Backups(s)),
@@ -117,9 +120,12 @@ public sealed class MainWindow : Window
         }
         Button maxBtn = null;
         maxBtn = Cap("", () => WindowState = WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized);
-        var caps = H(Cap("", () => WindowState = WindowState.Minimized), maxBtn, Cap("", Close, "#C42B1C")).Right();
+        var caps = H(Cap("", () => WindowState = WindowState.Minimized), maxBtn, Cap("", Close, "#C42B1C"));
+        var lang = SegHost(Seg("EN", "lang", !Loc.De, () => SwitchLang(false)), Seg("DE", "lang", Loc.De, () => SwitchLang(true)));
+        lang.VerticalAlignment = VerticalAlignment.Center; lang.Tip("Sprache");
+        WindowChrome.SetIsHitTestVisibleInChrome(lang, true);
         var titleBar = new Grid { Height = 42, Background = Bg0 };
-        titleBar.Children.Add(title); titleBar.Children.Add(caps);
+        titleBar.Children.Add(title); titleBar.Children.Add(H(lang.M(0, 0, 14, 0), caps).Right());
         StateChanged += (_, _) => { root.Margin = new Thickness(WindowState == WindowState.Maximized ? 7 : 0); maxBtn.Content = WindowState == WindowState.Maximized ? "" : ""; };
 
         App.Trace("ctor d");
@@ -127,7 +133,7 @@ public sealed class MainWindow : Window
         var nav = new StackPanel { Margin = new Thickness(0, 6, 0, 0) };
         foreach (var p in pages)
         {
-            var content = H(Icon(p.Icon, 14).W(22).M(0, 0, 10, 0), new TextBlock { Text = p.Title, VerticalAlignment = VerticalAlignment.Center });
+            var content = H(Icon(p.Icon, 14).W(22).M(0, 0, 10, 0), new TextBlock { Text = Loc.L(p.Title), VerticalAlignment = VerticalAlignment.Center });
             ((TextBlock)content.Children[0]).SetBinding(TextBlock.ForegroundProperty, new System.Windows.Data.Binding("Foreground") { RelativeSource = new System.Windows.Data.RelativeSource(System.Windows.Data.RelativeSourceMode.FindAncestor, typeof(RadioButton), 1) });
             var rb = new RadioButton { Style = (Style)FindResource("Nav"), Content = content, GroupName = "nav", Tag = p };
             rb.Checked += (_, _) => Navigate(p);
@@ -169,18 +175,36 @@ public sealed class MainWindow : Window
         Content = root;
 
         InputBindings.Add(new KeyBinding(new Relay(DoSave), Key.S, ModifierKeys.Control));
-        Closing += (_, e) => { if (!ConfirmDiscard()) e.Cancel = true; };
+        Closing += (_, e) => { if (!switching && !ConfirmDiscard()) e.Cancel = true; };
+        Closed += (_, _) => { watch.Stop(); (host.Content as IDisposable)?.Dispose(); };
         App.Trace("ctor f");
         watch.Tick += (_, _) => CheckGame(); watch.Start(); CheckGame();
         App.Trace("ctor g");
 
         Loaded += (_, _) =>
         {
-            string first = null;
-            try { first = Directory.Exists(SaveGame.SaveDir) ? Directory.GetFiles(SaveGame.SaveDir, "slot_*.dat").OrderByDescending(File.GetLastWriteTime).FirstOrDefault() : null; } catch { }
-            LoadSlot(first);
-            ((RadioButton)nav.Children[0]).IsChecked = true;
+            if (carry != null) { Save = carry; BuildSlots(); UpdateDirty(); }
+            else
+            {
+                string first = Environment.GetEnvironmentVariable("FTN_OPEN") is { } o ? Path.GetFullPath(o) : null;
+                if (first == null) try { first = Directory.Exists(SaveGame.SaveDir) ? Directory.GetFiles(SaveGame.SaveDir, "slot_*.dat").OrderByDescending(File.GetLastWriteTime).FirstOrDefault() : null; } catch { }
+                LoadSlot(first);
+            }
+            int start = Math.Max(0, pages.FindIndex(p => p.Key == carryPage));
+            ((RadioButton)nav.Children[start]).IsChecked = true;
         };
+    }
+
+    /// <summary>Rebuilds the whole window in the other language; the loaded save (with unsaved edits) and the page stay.</summary>
+    void SwitchLang(bool de)
+    {
+        if (Loc.De == de) return;
+        Keyboard.ClearFocus();
+        Loc.Set(de);
+        var w = new MainWindow(Save, current?.Key) { WindowStartupLocation = WindowStartupLocation.Manual, Left = Left, Top = Top, Width = Width, Height = Height };
+        if (WindowState == WindowState.Maximized) w.WindowState = WindowState.Maximized;
+        switching = true;
+        Application.Current.MainWindow = w; w.Show(); Close();
     }
 
     sealed class Relay(Action a) : ICommand { public event EventHandler CanExecuteChanged { add { } remove { } } public bool CanExecute(object p) => true; public void Execute(object p) => a(); }
@@ -226,7 +250,7 @@ public sealed class MainWindow : Window
                 Padding = new Thickness(11, 8, 11, 9), Margin = new Thickness(12, 0, 12, 6), Cursor = Cursors.Hand,
                 Child = V(top, T(line2, 11, active ? Dim : Faint).M(0, 2, 0, 6), Bar(frac, active ? Hay : Faint, 3))
             };
-            card.Tip($"{f}\nAbgebaut: {frac:P1}");
+            card.Tip(f + "\n" + Loc.L("Abgebaut") + $": {frac:P1}");
             if (!active)
             {
                 card.MouseEnter += (_, _) => card.Background = Hex("#191C22");
@@ -243,7 +267,7 @@ public sealed class MainWindow : Window
     void OpenFile()
     {
         if (!ConfirmDiscard()) return;
-        var d = new Microsoft.Win32.OpenFileDialog { Filter = "Spielstand (*.dat;*.bak;*.bin)|*.dat;*.bak;*.bin|Alle Dateien|*.*", InitialDirectory = Directory.Exists(SaveGame.SaveDir) ? SaveGame.SaveDir : null };
+        var d = new Microsoft.Win32.OpenFileDialog { Filter = Loc.L("Spielstand") + " (*.dat;*.bak;*.bin)|*.dat;*.bak;*.bin|" + Loc.L("Alle Dateien") + "|*.*", InitialDirectory = Directory.Exists(SaveGame.SaveDir) ? SaveGame.SaveDir : null };
         if (d.ShowDialog(this) == true) LoadSlot(d.FileName);
     }
 
@@ -258,13 +282,13 @@ public sealed class MainWindow : Window
     }
 
     // ---------- navigation ----------
-    void Navigate(Page p) { current = p; pageTitle.Text = p.Title; pageSub.Text = p.Sub; Refresh(); }
+    void Navigate(Page p) { current = p; pageTitle.Text = Loc.L(p.Title); pageSub.Text = Loc.L(p.Sub); Refresh(); }
 
     public void Refresh()
     {
         if (current == null) return;
         (host.Content as IDisposable)?.Dispose();
-        if (Save == null) { host.Content = Empty("Kein Spielstand geladen", "Im Ordner " + SaveGame.SaveDir + " wurde nichts gefunden. Über „Datei öffnen …“ kannst du eine Datei wählen."); return; }
+        if (Save == null) { host.Content = Empty("Kein Spielstand geladen", Loc.L("Im Ordner {0} wurde nichts gefunden. Über „Datei öffnen …“ kannst du eine Datei wählen.", SaveGame.SaveDir)); return; }
         try { host.Content = current.Build(Save); }
         catch (Exception ex) { host.Content = Empty("Dieser Bereich konnte nicht aufgebaut werden", ex.Message); }
     }
@@ -277,7 +301,7 @@ public sealed class MainWindow : Window
     void UpdateDirty()
     {
         bool d = Save?.Dirty == true;
-        dirtyText.Text = Save == null ? "" : d ? "●  Ungespeicherte Änderungen" : "Alles gespeichert";
+        dirtyText.Text = Save == null ? "" : d ? "●  " + Loc.L("Ungespeicherte Änderungen") : Loc.L("Alles gespeichert");
         dirtyText.Foreground = d ? Hay : Faint;
         saveBtn.IsEnabled = Save != null;
     }
@@ -292,7 +316,7 @@ public sealed class MainWindow : Window
         {
             string bak = Save.Save();
             BuildSlots(); UpdateDirty();
-            Toast("Gespeichert" + (bak != null ? " · Backup angelegt" : "") + " · Lauf zählt nicht für Bestenlisten");
+            Toast(Loc.L("Gespeichert") + (bak != null ? " · " + Loc.L("Backup angelegt") : "") + " · " + Loc.L("Lauf zählt nicht für Bestenlisten"));
             if (current?.Key == "backups") Refresh();
         }
         catch (Exception ex) { Dlg.Info("Speichern fehlgeschlagen", ex.Message); }

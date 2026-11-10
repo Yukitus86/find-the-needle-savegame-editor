@@ -54,7 +54,7 @@ public static partial class Pages
     {
         var cfg = ProfileCfg.Load();
         var entries = cfg.Entries("career");
-        if (entries.Count == 0) return MainWindow.Empty("Kein Karriere-Profil", "profile.cfg wurde nicht gefunden oder enthält keinen [career]-Abschnitt.\n" + cfg.Path);
+        if (entries.Count == 0) return MainWindow.Empty("Kein Karriere-Profil", Loc.L("profile.cfg wurde nicht gefunden oder enthält keinen [career]-Abschnitt.") + "\n" + cfg.Path);
         bool changed = false;
         var saveBtn = Btn("Profil speichern", null, "BtnAccent", ""); saveBtn.IsEnabled = false;
         saveBtn.Click += (_, _) => { try { cfg.Save(); changed = false; saveBtn.IsEnabled = false; MainWindow.I.Toast("profile.cfg gespeichert · Backup angelegt"); } catch (Exception ex) { Dlg.Info("Fehler", ex.Message); } };
@@ -132,7 +132,7 @@ public static partial class Pages
                     g.ColumnDefinitions.Add(new ColumnDefinition());
                     double v = sel(d);
                     var bar = new Border { Background = color, CornerRadius = new CornerRadius(4, 4, 0, 0), Height = Math.Max(2, 120 * v / max), VerticalAlignment = VerticalAlignment.Bottom, MaxWidth = 46, Margin = new Thickness(4, 0, 4, 0) };
-                    var col = Rows("*,a,a", bar, Mono(metric == "play" ? Time(v) : Short(v), 10.5, Ui.Text).M(0, 5, 0, 0), T(DateTime.TryParse(d.date, Inv, DateTimeStyles.None, out var dt) ? dt.ToString("dd.MM.") : d.date, 10.5, Faint));
+                    var col = Rows("*,a,a", bar, Mono(metric == "play" ? Time(v) : Short(v), 10.5, Ui.Text).M(0, 5, 0, 0), T(DateTime.TryParse(d.date, Inv, DateTimeStyles.None, out var dt) ? dt.ToString(Loc.De ? "dd.MM." : "MM-dd") : d.date, 10.5, Faint));
                     foreach (var t in col.Children.OfType<TextBlock>()) t.HorizontalAlignment = HorizontalAlignment.Center;
                     Grid.SetColumn(col, g.ColumnDefinitions.Count - 1); g.Children.Add(col);
                 }
@@ -140,7 +140,7 @@ public static partial class Pages
             }
             Draw();
             var seg = SegHost(Seg("Spielzeit", "cm", true, () => { metric = "play"; Draw(); }), Seg("Heu abgebaut", "cm", false, () => { metric = "dug"; Draw(); }), Seg("Geld verdient", "cm", false, () => { metric = "earned"; Draw(); }));
-            daysCard = Card($"Tagebuch · {days.Count} Spieltage", chartHost, seg, "");
+            daysCard = Card(Loc.L("Tagebuch · {0} Spieltage", days.Count), chartHost, seg, "");
         }
 
         var head = Box(Cols("a,*,a", Icon("", 16, Hay).M(0, 0, 12, 0), V(T("Karriere gilt für alle Slots und liegt in einer eigenen Datei.", 13, Ui.Text, true), T(cfg.Path, 11, Faint, false, "MonoFont")), Pill("nur lesen", Dim).VCenter()), pad: 14);
@@ -171,12 +171,12 @@ public static partial class Pages
             bool mine = slot == curName;
             string tag = gameBak ? "Spiel-Backup" : f.Name.Contains("__manuell") ? "manuell" : f.Name.Contains("__vor-restore") ? "vor Wiederherstellung" : "automatisch";
             string info = "";
-            if (!profile) try { var b = SaveGame.Load(f.FullName); info = $"{Short(b.State.Num("money"))} $ · {Time(b.State.Num("run_secs"))} · {b.Ranks?.Items.Count ?? 0} Karten"; } catch { info = "nicht lesbar"; }
+            if (!profile) try { var b = SaveGame.Load(f.FullName); info = Loc.L("{0} $ · {1} · {2} Karten", Short(b.State.Num("money")), Time(b.State.Num("run_secs")), b.Ranks?.Items.Count ?? 0); } catch { info = "nicht lesbar"; }
             var color = profile ? Hex("#B48CF2") : mine ? Hay : Dim;
             var restore = Btn("Wiederherstellen", () =>
             {
                 string target = profile ? ProfileCfg.DefaultPath : Path.Combine(SaveGame.SaveDir, slot + ".dat");
-                if (!Dlg.Confirm("Backup wiederherstellen", $"{Path.GetFileName(target)} wird durch dieses Backup vom {f.LastWriteTime:dd.MM.yyyy HH:mm} ersetzt. Der jetzige Stand wird vorher gesichert.", "Wiederherstellen")) return;
+                if (!Dlg.Confirm("Backup wiederherstellen", Loc.L("{0} wird durch dieses Backup vom {1} ersetzt. Der jetzige Stand wird vorher gesichert.", Path.GetFileName(target), Loc.Date(f.LastWriteTime)), "Wiederherstellen")) return;
                 try
                 {
                     if (File.Exists(target)) SaveGame.Backup(target, "vor-restore");
@@ -189,7 +189,7 @@ public static partial class Pages
             var del = Btn("", () => { if (Dlg.Confirm("Backup löschen", f.Name + " endgültig löschen?", "Löschen", true)) { try { f.Delete(); } catch { } Reload(); } }, "BtnGhost", "");
             var row = Box(Cols("a,150,*,a,a,a",
                 new Border { Width = 34, Height = 34, CornerRadius = new CornerRadius(9), Background = Alpha(color, 0.13), Child = Icon(profile ? "" : "", 14, color) }.M(0, 0, 12, 0),
-                V(T(profile ? "Karriere-Profil" : slot.StartsWith("slot_") && int.TryParse(slot[5..], out int n) ? $"Slot {n + 1}" : slot, 13, Ui.Text, true), T(f.LastWriteTime.ToString("dd.MM.yyyy · HH:mm:ss"), 11.5, Dim)),
+                V(T(profile ? "Karriere-Profil" : slot.StartsWith("slot_") && int.TryParse(slot[5..], out int n) ? $"Slot {n + 1}" : slot, 13, Ui.Text, true), T(f.LastWriteTime.ToString(Loc.De ? "dd.MM.yyyy · HH:mm:ss" : "yyyy-MM-dd · HH:mm:ss"), 11.5, Dim)),
                 T(info, 12, Dim), Pill(tag, gameBak ? Steel : tag == "manuell" ? Hay : Dim).M(0, 0, 14, 0), restore.VCenter().M(0, 0, 4, 0), gameBak ? null : del.VCenter()), pad: 10);
             row.Margin = new Thickness(0, 0, 0, 6); row.BorderBrush = mine ? Alpha(Hay, 0.25) : Line;
             list.Children.Add(row);
@@ -207,7 +207,7 @@ public static partial class Pages
             Btn("Entschlüsselt exportieren (.bin)", () => { var d = new Microsoft.Win32.SaveFileDialog { Filter = "Godot-Variant|*.bin", FileName = Path.GetFileNameWithoutExtension(s.Path) + ".bin" }; if (d.ShowDialog() == true) { File.WriteAllBytes(d.FileName, s.Root.ToFile()); MainWindow.I.Toast(".bin exportiert"); } }, "Btn", "").M(0, 0, 8, 0),
             Btn(".bin importieren", () =>
             {
-                var d = new Microsoft.Win32.OpenFileDialog { Filter = "Godot-Variant|*.bin|Alle Dateien|*.*" };
+                var d = new Microsoft.Win32.OpenFileDialog { Filter = "Godot-Variant|*.bin|" + Loc.L("Alle Dateien") + "|*.*" };
                 if (d.ShowDialog() != true) return;
                 try { s.Root = GdVar.FromFile(File.ReadAllBytes(d.FileName)); _ = s.State; Dirty(); Reload(); MainWindow.I.Toast("Importiert – noch nicht gespeichert"); } catch (Exception ex) { Dlg.Info("Import fehlgeschlagen", ex.Message); }
             }, "Btn", ""));
@@ -259,7 +259,7 @@ public static partial class Pages
         if (end < kids.Count)
         {
             Button more = null;
-            more = Btn($"weitere {Math.Min(Page, kids.Count - end)} von {kids.Count - end} anzeigen", () => { parent.Children.Remove(more); AddChildren(parent, node, depth, end); }, "BtnGhost", "");
+            more = Btn(Loc.L("weitere {0} von {1} anzeigen", Math.Min(Page, kids.Count - end), kids.Count - end), () => { parent.Children.Remove(more); AddChildren(parent, node, depth, end); }, "BtnGhost", "");
             more.Foreground = Steel; more.HorizontalAlignment = HorizontalAlignment.Left; more.Margin = new Thickness(depth * 18 + 22, 2, 0, 2);
             parent.Children.Add(more);
         }
@@ -270,7 +270,7 @@ public static partial class Pages
         bool container = v.Type is GdVar.DICT or GdVar.ARRAY || (v.Value is Array && v.Value is not double[] { Length: <= 4 } && v.Value is not long[] { Length: <= 4 });
         if (!container)
         {
-            if (key != null && (key.StartsWith("board_") || key is "debug_used" or "run_timed")) return RawRow(depth, key, v, null, v.ToString() + "   · gesperrt (Bestenliste)", null);
+            if (key != null && (key.StartsWith("board_") || key is "debug_used" or "run_timed")) return RawRow(depth, key, v, null, v.ToString() + "   · " + Loc.L("gesperrt (Bestenliste)"), null);
             if (v.Type == GdVar.BOOL) return RawRow(depth, key, v, null, null, null, Switch("", v.Bool, b => { v.Bool = b; Dirty(); }));
             if (v.Value is double[] da)
             {
@@ -290,7 +290,7 @@ public static partial class Pages
         bool loaded = false;
         var chevron = Icon("", 9, Dim); chevron.Width = 16;
         int count = v.Type == GdVar.DICT ? v.Dict.Items.Count : v.Type == GdVar.ARRAY ? v.List.Count : ((Array)v.Value).Length;
-        var row = RawRow(depth, key, v, chevron, null, null, T(count == 0 ? "leer" : $"{count} Einträge", 11.5, Faint));
+        var row = RawRow(depth, key, v, chevron, null, null, T(count == 0 ? "leer" : Loc.L("{0} Einträge", count), 11.5, Faint));
         row.Cursor = Cursors.Hand;
         row.MouseLeftButtonUp += (_, e) =>
         {

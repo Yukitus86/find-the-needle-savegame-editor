@@ -234,7 +234,7 @@ public sealed class TopView : FrameworkElement
             }
             if (i == Selected) dc.DrawEllipse(null, P(Ui.C("#FFFFFF"), 1.5, 0.9), sp, 14, 14);
             double depth = NeedleOps.Depth(S, i);
-            string label = radar ? $"{i + 1} · {Math.Sqrt(Math.Pow(x - pl.x, 2) + Math.Pow(z - pl.z, 2)):0.0} m" : $"{i + 1}" + (found ? "" : depth <= 0.02 ? " · frei" : $" · {depth:0.0} m tief");
+            string label = radar ? $"{i + 1} · {Math.Sqrt(Math.Pow(x - pl.x, 2) + Math.Pow(z - pl.z, 2)):0.0} m" : $"{i + 1}" + (found ? "" : depth <= 0.02 ? " · " + Loc.L("frei") : " · " + Loc.L("{0} m tief", depth.ToString("0.0")));
             var ft = Txt(label, 10.5, B(radar ? accent : Ui.C("#FFFFFF"), radar ? Math.Max(0.35, vis) : found ? 0.45 : 0.95));
             dc.DrawRoundedRectangle(B(Ui.C("#0A0B0E"), 0.72), null, new Rect(sp.X + 12, sp.Y - 9, ft.Width + 10, 18), 4, 4);
             dc.DrawText(ft, new Point(sp.X + 17, sp.Y - ft.Height / 2));
@@ -244,7 +244,7 @@ public sealed class TopView : FrameworkElement
         double barM = scale * 10 < 160 ? 10 : scale * 5 < 160 ? 5 : 1;
         dc.DrawLine(P(Ui.C("#FFFFFF"), 2, 0.6), new Point(16, hgt - 18), new Point(16 + barM * scale, hgt - 18));
         dc.DrawText(Txt($"{barM:0} m", 10, B(Ui.C("#FFFFFF"), 0.6)), new Point(16, hgt - 36));
-        if (radar) dc.DrawText(Txt($"RADAR · {Enumerable.Range(0, n).Count(i => !NeedleOps.IsFound(S, i))} SIGNALE", 11, B(accent, 0.85)), new Point(16, 58));
+        if (radar) dc.DrawText(Txt(Loc.L("RADAR · {0} SIGNALE", Enumerable.Range(0, n).Count(i => !NeedleOps.IsFound(S, i))), 11, B(accent, 0.85)), new Point(16, 58));
     }
 
     protected override void OnMouseWheel(MouseWheelEventArgs e)
@@ -273,7 +273,7 @@ public sealed class TopView : FrameworkElement
         }
         if (S == null) return;
         Point wp = S2W(m); bool inside = Math.Abs(wp.X) <= S.Extent && Math.Abs(wp.Y) <= S.Extent;
-        Hover?.Invoke($"X {wp.X:0.0}   Z {wp.Y:0.0}" + (inside ? $"   Heu {S.HeightAt(wp.X, wp.Y):0.00} m" : ""));
+        Hover?.Invoke($"X {wp.X:0.0}   Z {wp.Y:0.0}" + (inside ? "   " + Loc.L("Heu {0} m", S.HeightAt(wp.X, wp.Y).ToString("0.00")) : ""));
     }
 }
 

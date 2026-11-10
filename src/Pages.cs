@@ -141,7 +141,7 @@ public static partial class Pages
         var slotCard = meta == null ? null : Card("Slot", V(
             Cols("110,*", T("Name", 12, Dim), TextBoxFor(meta.Str("name"), v => { meta.Get("name").Str = v; Dirty(); }, 220).Left()).M(0, 0, 0, 10),
             Flow(Switch("Gesperrt", meta.Get("locked")?.Bool == true, v => { if (meta.Get("locked") is { } g) { g.Bool = v; Dirty(); } }).M(0, 0, 22, 0),
-                 T("Zuletzt gespeichert: " + DateTimeOffset.FromUnixTimeSeconds((long)meta.Num("saved_at")).LocalDateTime.ToString("dd.MM.yyyy HH:mm"), 12, Dim))), icon: "");
+                 T(Loc.L("Zuletzt gespeichert:") + " " + Loc.Date(DateTimeOffset.FromUnixTimeSeconds((long)meta.Num("saved_at")).LocalDateTime), 12, Dim))), icon: "");
 
         var row1 = Cols("*,18,*", hero, null, pile);
         var row3 = Cols("*,18,*", Card("Gadgets", gadgets, icon: ""), null, V(Card("Lauf-Flags", flags, icon: ""), slotCard?.M(0, 14, 0, 0)));
@@ -157,7 +157,7 @@ public static partial class Pages
         var center = V(Head($"{found}/{n}", 24));
         var summary = Box(Cols("a,*,a",
             Ring(n > 0 ? (double)found / n : 0, 84, 8, Steel, center).M(0, 0, 20, 0),
-            V(Head(found == n && n > 0 ? "Alle Nadeln gefunden" : $"Noch {n - found} Nadel{(n - found == 1 ? "" : "n")} im Heu", 17),
+            V(Head(found == n && n > 0 ? "Alle Nadeln gefunden" : (n - found == 1 ? Loc.L("Noch 1 Nadel im Heu") : Loc.L("Noch {0} Nadeln im Heu", n - found)), 17),
               T("„Gefunden“ zählt wie im Spiel: Sammlung, Bestand und Zähler werden mitgeführt.", 12, Dim).Wrap().M(0, 5, 0, 0)).VCenter(),
             H(Btn("Alle finden", () => { for (int i = 0; i < n; i++) NeedleOps.SetFound(s, i, true); Dirty(); Reload(); }, "BtnAccent", "").M(0, 0, 8, 0),
               Btn("Alle zurück ins Heu", () => { for (int i = 0; i < n; i++) NeedleOps.SetFound(s, i, false); Dirty(); Reload(); }, "Btn", "")).VCenter()), pad: 18);
@@ -173,15 +173,15 @@ public static partial class Pages
             var gem = new Border { Width = 40, Height = 40, CornerRadius = new CornerRadius(10), Background = Alpha(col, isFound ? 0.08 : 0.16), Child = NeedleGlyph(col, 22), Opacity = isFound ? 0.55 : 1 };
             if (!isFound) gem.Effect = Glow(col.Color, 16, 0.35);
             var head = Cols("a,*,a", gem.M(0, 0, 12, 0),
-                V(T($"Nadel {i + 1}", 14, Ui.Text, true), Combo(typeIds, type.ToString(), v => { st.Get("needle_type").Bytes[idx] = byte.Parse(v); Dirty(); Reload(); }, v => GameData.NeedleName(int.Parse(v)), 150).M(0, 4, 0, 0).Left()),
+                V(T(Loc.L("Nadel {0}", i + 1), 14, Ui.Text, true), Combo(typeIds, type.ToString(), v => { st.Get("needle_type").Bytes[idx] = byte.Parse(v); Dirty(); Reload(); }, v => GameData.NeedleName(int.Parse(v)), 150).M(0, 4, 0, 0).Left()),
                 Pill(isFound ? "gefunden" : "im Heu", isFound ? Good : Hay).VCenter());
             head.VerticalAlignment = VerticalAlignment.Top;
-            string depthText = depth <= 0.02 ? "liegt frei" : $"{depth:0.00} m Heu darüber";
+            string depthText = depth <= 0.02 ? Loc.L("liegt frei") : Loc.L("{0} m Heu darüber", depth.ToString("0.00"));
             var depthBar = V(Cols("*,a", T("Tiefe", 11.5, Dim), Mono(depthText, 11.5, depth <= 0.02 ? Good : Ui.Text)), Bar(depth / Math.Max(maxH, 0.1), col, 5).M(0, 5, 0, 0));
             var pos = Cols("*,*,*", Coord("X", x), Coord("Höhe", y), Coord("Z", z));
             var actions = Cols("*,a", Switch("Gefunden", isFound, v => { NeedleOps.SetFound(s, idx, v); Dirty(); Reload(); }),
-                H(Btn("", () => { NeedleOps.Excavate(s, idx); Dirty(); Reload(); MainWindow.I.Toast($"Nadel {idx + 1} freigelegt"); }, "Btn", "").Tip("Freilegen: gräbt einen Trichter bis zur Nadel").M(0, 0, 6, 0),
-                  Btn("", () => { var p = NeedleOps.Pos(s, idx); NeedleOps.TeleportPlayer(s, p.x, p.z); Dirty(); MainWindow.I.Toast($"Spieler steht jetzt über Nadel {idx + 1}"); }, "Btn", "").Tip("Spieler direkt über die Nadel stellen")));
+                H(Btn("", () => { NeedleOps.Excavate(s, idx); Dirty(); Reload(); MainWindow.I.Toast(Loc.L("Nadel {0} freigelegt", idx + 1)); }, "Btn", "").Tip("Freilegen: gräbt einen Trichter bis zur Nadel").M(0, 0, 6, 0),
+                  Btn("", () => { var p = NeedleOps.Pos(s, idx); NeedleOps.TeleportPlayer(s, p.x, p.z); Dirty(); MainWindow.I.Toast(Loc.L("Spieler steht jetzt über Nadel {0}", idx + 1)); }, "Btn", "").Tip("Spieler direkt über die Nadel stellen")));
             var card = Box(V(head, pos.M(0, 14, 0, 12), depthBar, new Border { Height = 1, Background = Line, Margin = new Thickness(0, 14, 0, 12) }, actions));
             card.Width = 300; card.Margin = new Thickness(0, 0, 12, 12);
             cards.Children.Add(card);
@@ -203,7 +203,7 @@ public static partial class Pages
                 coll.Children.Add(cell);
             }
         int known2 = disc?.Count(b => b != 0) ?? 0;
-        var collHead = Cols("*,a", Caps($"Sammlung · {known2} von {disc?.Length ?? 0} Typen entdeckt"),
+        var collHead = Cols("*,a", Caps(Loc.L("Sammlung · {0} von {1} Typen entdeckt", known2, disc?.Length ?? 0)),
             H(Btn("Alle entdecken", () => { for (int t = 0; t < disc.Length; t++) disc[t] = 1; Dirty(); Reload(); }, "Btn", "").M(0, 0, 8, 0),
               Btn("Bestand +1 für alle", () => { for (int t = 0; t < stock.Length; t++) { stock[t]++; if (byType != null && t < byType.Length) byType[t]++; if (disc != null && t < disc.Length) disc[t] = 1; } Dirty(); Reload(); }, "Btn", "")));
         var total = Cols("150,a,*", T("Nadeln gefunden (Zähler)", 12, Dim), NumBox(st.Num("needles_found"), v => { st.SetNum("needles_found", v); Dirty(); }, 0, 0, 1e6, 80)).M(2, 0, 0, 16);
@@ -224,94 +224,6 @@ public static partial class Pages
         return g;
     }
 
-    // =====================================================================  TECH
-    public static FrameworkElement Tech(SaveGame s)
-    {
-        var ranks = s.Ranks;
-        if (ranks == null) return MainWindow.Empty("Keine Technik-Daten", "Dieser Spielstand enthält keinen Technik-Block.");
-        var sample = ranks.Items.FirstOrDefault().Value;
-        int Get(string id) => (int)ranks.Num(id);
-        void Set(string id, int v) { if (v <= 0) ranks.Remove(id); else if (ranks.Get(id) is { } g) g.Int = v; else ranks.Set(id, NewLike(sample, v)); Dirty(); }
-
-        var cats = GameData.Tech.ToList();
-        var extra = ranks.Keys.Where(k => !GameData.MaxRank.ContainsKey(k)).ToArray();
-        if (extra.Length > 0) cats.Add(new("Weitere (aus diesem Spielstand)", "", "#9AA0AE", extra.Select(k => (k, Math.Max(Get(k), 1))).ToArray()));
-
-        var updaters = new List<Action>(); var filters = new List<Action<string>>();
-        var totalText = Mono("", 12, Dim); var totalBarHost = new ContentControl { Focusable = false, Width = 130 };
-        void UpdateTotal()
-        {
-            int have = 0, max = 0; foreach (var c in cats) foreach (var (id, m) in c.Cards) { have += Math.Min(Get(id), m); max += m; }
-            totalText.Text = $"{have} / {max} Ränge"; totalBarHost.Content = Bar(max > 0 ? (double)have / max : 0, Hay, 6);
-        }
-        void RefreshAll() { foreach (var u in updaters) u(); UpdateTotal(); }
-        void SetAll(Func<string, int, int, int> f, IEnumerable<GameData.TechCat> which) { foreach (var c in which) foreach (var (id, m) in c.Cards) Set(id, f(id, Get(id), m)); RefreshAll(); }
-
-        var body = new StackPanel();
-        foreach (var cat in cats)
-        {
-            var color = Hex(cat.Color);
-            var catText = Mono("", 11.5, Dim);
-            var wrap = new WrapPanel();
-            var one = new[] { cat };
-            foreach (var (id, max) in cat.Cards)
-            {
-                var name = T(Ui.Pretty(id), 13, Ui.Text, true);
-                var pips = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 9, 0, 10) };
-                var rankText = Mono("", 12);
-                var maxPill = Pill("MAX", Hay, true);
-                var minus = Btn("", null, "Btn", ""); minus.Padding = new Thickness(7, 5, 7, 5);
-                var plus = Btn("", null, "Btn", ""); plus.Padding = new Thickness(7, 5, 7, 5);
-                var top = Cols("*,a", name, maxPill);
-                var card = Box(V(top, T(id, 10.5, Faint, false, "MonoFont"), pips, Cols("a,*,a,6,a", rankText, null, minus, null, plus)), pad: 12);
-                card.Width = 196; card.Margin = new Thickness(0, 0, 10, 10);
-                void Update()
-                {
-                    int r = Get(id); bool owned = r > 0, full = r >= max;
-                    pips.Children.Clear();
-                    double pw = max == 1 ? 60 : Math.Min(22, (170.0 - (max - 1) * 3) / max);
-                    for (int i = 0; i < max; i++) pips.Children.Add(new Border { Width = pw, Height = 5, CornerRadius = new CornerRadius(2.5), Margin = new Thickness(0, 0, 3, 0), Background = i < r ? (full ? Hay : color) : Bg4 });
-                    rankText.Text = max == 1 ? (owned ? "freigeschaltet" : "gesperrt") : $"Rang {r} / {max}";
-                    rankText.Foreground = owned ? Ui.Text : Faint;
-                    maxPill.Visibility = full ? Visibility.Visible : Visibility.Hidden;
-                    name.Foreground = owned ? Ui.Text : Dim;
-                    card.BorderBrush = full ? Alpha(Hay, 0.45) : Line;
-                    card.Background = owned ? Bg2 : Hex("#15171C");
-                    minus.IsEnabled = r > 0; plus.IsEnabled = r < max;
-                }
-                minus.Click += (_, _) => { Set(id, Get(id) - 1); RefreshAll(); };
-                plus.Click += (_, _) => { Set(id, Math.Min(max, Get(id) + 1)); RefreshAll(); };
-                card.MouseRightButtonUp += (_, _) => { Set(id, Get(id) >= max ? 0 : max); RefreshAll(); };
-                card.Tip("Rechtsklick: MAX / zurücksetzen");
-                updaters.Add(Update);
-                filters.Add(q => card.Visibility = q == "" || id.Contains(q, StringComparison.OrdinalIgnoreCase) || Ui.Pretty(id).Contains(q, StringComparison.OrdinalIgnoreCase) ? Visibility.Visible : Visibility.Collapsed);
-                wrap.Children.Add(card);
-            }
-            updaters.Add(() => { int have = cat.Cards.Sum(c => Math.Min(Get(c.Id), c.Max)), mx = cat.Cards.Sum(c => c.Max); catText.Text = $"{have}/{mx}"; });
-            var badge = new Border { Width = 28, Height = 28, CornerRadius = new CornerRadius(8), Background = Alpha(color, 0.14), Child = Icon(cat.Icon, 13, color) };
-            var head = Cols("a,a,a,*,a", badge.M(0, 0, 10, 0), Head(cat.Name, 15), catText.M(12, 0, 0, 0), null,
-                H(Btn("+1", () => SetAll((_, r, m) => Math.Min(m, r + 1), one)).M(0, 0, 6, 0), Btn("−1", () => SetAll((_, r, m) => Math.Max(0, r - 1), one)).M(0, 0, 6, 0), Btn("MAX", () => SetAll((_, _, m) => m, one))));
-            var section = V(head.M(0, 18, 10, 12), wrap);
-            filters.Add(q => section.Visibility = wrap.Children.Cast<UIElement>().Any(c => c.Visibility == Visibility.Visible) ? Visibility.Visible : Visibility.Collapsed);
-            body.Children.Add(section);
-        }
-        RefreshAll();
-
-        var search = new TextBox { Width = 190 };
-        var placeholder = T("Karte suchen …", 12.5, Faint).M(30, 0, 0, 0); placeholder.IsHitTestVisible = false;
-        search.Padding = new Thickness(28, 6, 8, 6);
-        search.TextChanged += (_, _) => { placeholder.Visibility = search.Text == "" ? Visibility.Visible : Visibility.Hidden; foreach (var f in filters) f(search.Text.Trim()); };
-        var searchHost = new Grid(); searchHost.Children.Add(search); searchHost.Children.Add(Icon("", 12, Dim).Left().M(10, 0, 0, 0)); searchHost.Children.Add(placeholder);
-        var bar = Box(Cols("a,a,a,*,a", searchHost, totalBarHost.M(18, 0, 12, 0), totalText, null,
-            H(Btn("Alle +1", () => SetAll((_, r, m) => Math.Min(m, r + 1), cats)).M(0, 0, 6, 0),
-              Btn("Zurücksetzen", () => { if (Dlg.Confirm("Technik zurücksetzen", "Alle Karten auf Rang 0 setzen? (Die Start-Karte „Yard“ bleibt.)", "Zurücksetzen", true)) SetAll((id, _, _) => id == "yard" ? 1 : 0, cats); }).M(0, 0, 6, 0),
-              Btn("Alles auf MAX", () => SetAll((_, _, m) => m, cats), "BtnAccent", ""))), pad: 12);
-        var dock = new DockPanel();
-        dock.Children.Add(new Border { Child = bar, Padding = new Thickness(26, 0, 26, 0) }.DockTo(System.Windows.Controls.Dock.Top));
-        dock.Children.Add(Scroll(body));
-        return dock;
-    }
-
     // =====================================================================  GEAR
     public static FrameworkElement Gear(SaveGame s)
     {
@@ -328,7 +240,7 @@ public static partial class Pages
                 var glyph = GameData.ToolGlyph.GetValueOrDefault(id, "");
                 var iconBox = new Border { Width = 46, Height = 46, CornerRadius = new CornerRadius(12), Background = has ? Alpha(Hay, 0.16) : Bg3, Child = Icon(glyph, 20, has ? Hay : Faint) };
                 if (has) iconBox.Effect = Glow(((SolidColorBrush)Hay).Color, 18, 0.3);
-                var tile = Box(V(Cols("a,*,a", iconBox, null, has ? Pill("im Besitz", Good) : Pill("fehlt", Faint)), T(GameData.ToolName.GetValueOrDefault(id, Ui.Pretty(id)), 13.5, has ? Ui.Text : Dim, true).M(0, 12, 0, 1), T(id, 10.5, Faint, false, "MonoFont")), pad: 14);
+                var tile = Box(V(Cols("a,*,a", iconBox, null, has ? Pill("im Besitz", Good) : Pill("fehlt", Faint)), T(GameData.ToolName(id), 13.5, has ? Ui.Text : Dim, true).M(0, 12, 0, 1), T(id, 10.5, Faint, false, "MonoFont")), pad: 14);
                 ((Grid)((StackPanel)tile.Child).Children[0]).VerticalAlignment = VerticalAlignment.Top;
                 tile.Width = 178; tile.Margin = new Thickness(0, 0, 10, 10); tile.Cursor = Cursors.Hand; tile.BorderBrush = has ? Alpha(Hay, 0.4) : Line;
                 tile.MouseLeftButtonUp += (_, _) => { if (has) owned.RemoveAll(o => o.Str == id); else owned.Add(GdVar.NewString(id)); Dirty(); Reload(); };
@@ -377,7 +289,7 @@ public static partial class Pages
         }
         var fresh = st.Get("fresh_builds"); int freshN = fresh?.Strings?.Length ?? 0;
         var freshCard = Card("„Neu“-Abzeichen", V(
-            T(freshN == 0 ? "Keine Bauteile sind als neu markiert." : $"{freshN} Bauteile sind im Baukatalog als neu markiert:", 12, Dim).Wrap(),
+            T(freshN == 0 ? "Keine Bauteile sind als neu markiert." : Loc.L("{0} Bauteile sind im Baukatalog als neu markiert:", freshN), 12, Dim).Wrap(),
             freshN == 0 ? null : Flow(fresh.Strings.Select(f => (UIElement)Pill(Ui.Pretty(Z(f)), Steel).M(0, 0, 6, 6)).ToArray()).M(0, 10, 0, 4),
             freshN == 0 ? null : Btn("Abzeichen entfernen", () => { fresh.Value = Array.Empty<string>(); st.Get("fresh_since")?.Dict?.Items.Clear(); Dirty(); Reload(); }, "Btn", "").Left().M(0, 6, 0, 0)), icon: "");
 
@@ -399,10 +311,10 @@ public static partial class Pages
         double refuelTo = maxFuel;
 
         var overview = Flow(
-            Tile("Gebäude gesamt", list.Count, null, "", Steel, hint: $"{list.Select(b => b["type"]?.Str).Distinct().Count()} Arten"),
-            Tile("Eingeschaltet", switchable.Count(IsOn), null, "", Good, hint: $"von {switchable.Count} schaltbaren"),
+            Tile("Gebäude gesamt", list.Count, null, "", Steel, hint: Loc.L("{0} Arten", list.Select(b => b["type"]?.Str).Distinct().Count())),
+            Tile("Eingeschaltet", switchable.Count(IsOn), null, "", Good, hint: Loc.L("von {0} schaltbaren", switchable.Count)),
             Tile("Investiert", list.Sum(b => b.Dict.Num("paid")), null, "", Hay, hint: "$ Baukosten"),
-            Tile("Treibstoff gesamt", gens.Sum(g => g["fuel"].Num), null, "", Hex("#FF8F5C"), hint: $"{gens.Count} Generatoren"));
+            Tile("Treibstoff gesamt", gens.Sum(g => g["fuel"].Num), null, "", Hex("#FF8F5C"), hint: Loc.L("{0} Generatoren", gens.Count)));
 
         void All(bool on, IEnumerable<GdVar> which) { foreach (var b in which) if (b["off"] is { } o) o.Bool = !on; Dirty(); Reload(); }
         void Refuel(IEnumerable<GdVar> which) { foreach (var g in which) if (g["fuel"] is { } f) f.Num = Math.Max(f.Num, refuelTo); Dirty(); Reload(); }
@@ -422,17 +334,17 @@ public static partial class Pages
             void Row(string label, UIElement right) => rows.Children.Add(Cols("*,a", T(label, 12, Dim), right).M(0, 0, 0, 7));
             if (sw.Count > 0)
             {
-                Row($"In Betrieb · {on}/{sw.Count}", Switch("", on == sw.Count, v => All(v, sw)));
+                Row(Loc.L("In Betrieb · {0}/{1}", on, sw.Count), Switch("", on == sw.Count, v => All(v, sw)));
                 rows.Children.Add(Bar((double)on / sw.Count, Good, 4).M(0, 0, 0, 10));
             }
             var fuel = items.Where(b => b.Dict.Has("fuel")).ToList();
             if (fuel.Count > 0)
             {
                 double avg = fuel.Average(f => f["fuel"].Num);
-                Row($"Treibstoff Ø {Num(avg)}", Btn("Auftanken", () => Refuel(fuel), "Btn", ""));
+                Row(Loc.L("Treibstoff Ø {0}", Num(avg)), Btn("Auftanken", () => Refuel(fuel), "Btn", ""));
                 rows.Children.Add(Bar(avg / maxFuel, Hex("#FF8F5C"), 4).M(0, 0, 0, 10));
             }
-            if (items.Any(b => b.Dict.Has("stored"))) Row("Eingelagert", Mono(Num(items.Sum(b => b.Dict.Num("stored"))) + " Halme", 12));
+            if (items.Any(b => b.Dict.Has("stored"))) Row("Eingelagert", Mono(Num(items.Sum(b => b.Dict.Num("stored"))) + " " + Loc.L("Halme"), 12));
             if (items.Any(b => b.Dict.Has("tier"))) Row("Stufe", Mono(string.Join(" · ", items.GroupBy(b => (int)b.Dict.Num("tier")).OrderBy(g => g.Key).Select(g => $"T{g.Key}×{g.Count()}")), 12));
             if (items.Any(b => b.Dict.Has("trips"))) Row("Flüge", Mono(Num(items.Sum(b => b.Dict.Num("trips"))), 12));
             double paid = items.Sum(b => b.Dict.Num("paid"));
@@ -456,7 +368,7 @@ public static partial class Pages
                         UIElement swc = b["off"] is { } o ? Switch("", !o.Bool, v => { o.Bool = !v; Dirty(); }) : null;
                         details.Children.Add(Cols("26,*,a,a", Mono(k.ToString(), 11, Faint), Mono(where, 11.5, Dim), ctl, swc == null ? null : ((FrameworkElement)swc).M(10, 0, 0, 0)).M(0, 0, 0, 5));
                     }
-                    if (items.Count > 60) details.Children.Add(T($"… und {items.Count - 60} weitere (siehe Rohdaten)", 11, Faint));
+                    if (items.Count > 60) details.Children.Add(T(Loc.L("… und {0} weitere (siehe Rohdaten)", items.Count - 60), 11, Faint));
                 }
                 details.Visibility = details.Visibility == Visibility.Visible ? Visibility.Collapsed : Visibility.Visible;
             };
@@ -467,8 +379,8 @@ public static partial class Pages
         var belts = s.Root["belts"]?["paths"]?.List;
         int onBelts = belts?.Sum(p => p["records"]?.List?.Count ?? 0) ?? 0;
         var beltCard = belts == null ? null : Box(Cols("a,*,a", Icon("", 16, Steel).M(0, 0, 12, 0),
-            V(T($"{belts.Count} Band-Strecken · {onBelts} Teile unterwegs", 13, Ui.Text, true), T("Leert alle Förderbänder (z. B. bei Stau). Die Teile verschwinden.", 11.5, Dim)),
-            Btn("Bänder leeren", () => { if (!Dlg.Confirm("Bänder leeren", $"{onBelts} Teile von allen Förderbändern entfernen?", "Leeren", true)) return; foreach (var p in belts) p["records"]?.List?.Clear(); Dirty(); Reload(); }, "Btn", "").VCenter()), pad: 14);
+            V(T(Loc.L("{0} Band-Strecken · {1} Teile unterwegs", belts.Count, onBelts), 13, Ui.Text, true), T("Leert alle Förderbänder (z. B. bei Stau). Die Teile verschwinden.", 11.5, Dim)),
+            Btn("Bänder leeren", () => { if (!Dlg.Confirm("Bänder leeren", Loc.L("{0} Teile von allen Förderbändern entfernen?", onBelts), "Leeren", true)) return; foreach (var p in belts) p["records"]?.List?.Clear(); Dirty(); Reload(); }, "Btn", "").VCenter()), pad: 14);
 
         return Scroll(V(overview, actions.M(0, 4, 0, 18), wrap, beltCard?.M(0, 4, 0, 0)));
     }
@@ -528,9 +440,9 @@ public static partial class Pages
                 var seg = new Border { Background = kindColor[k.Key], CornerRadius = new CornerRadius(ci == 0 ? 6 : 0, ci == kinds.Count - 1 ? 6 : 0, ci == kinds.Count - 1 ? 6 : 0, ci == 0 ? 6 : 0), Margin = new Thickness(0, 0, ci == kinds.Count - 1 ? 0 : 2, 0) };
                 Grid.SetColumn(seg, ci++); share.Children.Add(seg);
             }
-            string KindName(string k) => k switch { "build" => "Gebäude", "card" => "Technik-Karten", "gift" => "Geschenke", "tool" => "Werkzeug", _ => Ui.Pretty(k) };
+            string KindName(string k) => Loc.L(k switch { "build" => "Gebäude", "card" => "Technik-Karten", "gift" => "Geschenke", "tool" => "Werkzeug", _ => Ui.Pretty(k) });
             var legend = Flow(kinds.Select(k => (UIElement)H(new Border { Width = 9, Height = 9, CornerRadius = new CornerRadius(3), Background = kindColor[k.Key], Margin = new Thickness(0, 0, 7, 0) }, T($"{KindName(k.Key)}  ", 12), Mono($"{Num(k.Sum(e => e.cost))} $ · {k.Count()}×", 11.5, Dim)).M(0, 0, 22, 6)).ToArray());
-            analysis.Children.Add(Cols("*,a", Head(Num(totalSpend) + " $", 24), T($"{entries.Count} Käufe in {Time(entries.Max(e => e.t))}", 12, Dim)));
+            analysis.Children.Add(Cols("*,a", Head(Num(totalSpend) + " $", 24), T(Loc.L("{0} Käufe in {1}", entries.Count, Time(entries.Max(e => e.t))), 12, Dim)));
             analysis.Children.Add(share); analysis.Children.Add(legend);
 
             // cumulative spend sparkline
